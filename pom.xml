@@ -54,6 +54,14 @@
 			<artifactId>spring-boot-starter-webmvc-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+        <dependency>
+            <artifactId>flyway-core</artifactId>
+            <groupId>org.flywaydb</groupId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
 	</dependencies>
 
 	<build>
@@ -62,6 +70,16 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+            <plugin>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-maven-plugin</artifactId>
+                <version>12.1.1</version>
+                <configuration>
+                    <url>jdbc:postgresql://localhost:5432/taskmanagementservice</url>
+                    <user>user</user>
+                    <password>password</password>
+                </configuration>
+            </plugin>
 		</plugins>
 	</build>
 
