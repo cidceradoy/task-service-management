@@ -1,6 +1,7 @@
 package com.cidceradoy.task_management_system.service;
 
 import com.cidceradoy.task_management_system.dto.TaskView;
+import com.cidceradoy.task_management_system.exception.ResourceNotFoundException;
 import com.cidceradoy.task_management_system.model.Task;
 import com.cidceradoy.task_management_system.repository.TaskRepository;
 import com.cidceradoy.task_management_system.service.impl.TaskServiceImpl;
@@ -11,11 +12,16 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -119,5 +125,32 @@ public class TaskServiceTest {
         assertThat(result).hasSize(1);
         assertThat(result).extracting(TaskView::getStatus)
                 .containsExactly("DONE");
+    }
+
+    @Test
+    public void getTaskById_taskFound_returnTask() {
+        UUID id = UUID.randomUUID();
+        Task task = new Task("title-1", "desc-1", Task.Status.PENDING, LocalDateTime.now());
+        ReflectionTestUtils.setField(task, "id", id);
+        when(taskRepository.findById(any())).thenReturn(Optional.of(task));
+
+
+        TaskView result = taskService.getTaskById(id);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getTitle()).isEqualTo(task.getTitle());
+        assertThat(result.getDescription()).isEqualTo(task.getDescription());
+        assertThat(result.getStatus()).isEqualTo(task.getStatus().name());
+        assertThat(result.getDueDate()).isEqualTo(task.getDueDate());
+    }
+
+    @Test
+    public void getTaskById_taskNotFound_throwResourceNotFoundException() {
+        UUID id = UUID.randomUUID();
+
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
+                () -> taskService.getTaskById(id));
+
+        assertThat(exception.getMessage()).isEqualTo("Task with id " + id + " not found.");
     }
 }

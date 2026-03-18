@@ -32,6 +32,26 @@ public class Task {
         this.dueDate = dueDate;
     }
 
+    public UUID getId() {
+        return id;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public Status getStatus() {
+        return status;
+    }
+
+    public LocalDateTime getDueDate() {
+        return dueDate;
+    }
+
     protected Task() {
         // required by JPA
     }

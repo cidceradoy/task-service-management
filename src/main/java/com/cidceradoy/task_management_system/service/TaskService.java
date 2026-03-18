@@ -4,7 +4,9 @@ import com.cidceradoy.task_management_system.dto.TaskView;
 import com.cidceradoy.task_management_system.model.Task;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface TaskService {
     List<TaskView> getTasks(Task.Status status);
+    TaskView getTaskById(UUID id);
 }

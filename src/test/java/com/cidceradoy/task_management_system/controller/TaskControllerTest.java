@@ -1,22 +1,22 @@
 package com.cidceradoy.task_management_system.controller;
 
 import com.cidceradoy.task_management_system.dto.TaskView;
+import com.cidceradoy.task_management_system.exception.ResourceNotFoundException;
 import com.cidceradoy.task_management_system.model.Task;
-import com.cidceradoy.task_management_system.repository.TaskRepository;
 import com.cidceradoy.task_management_system.service.TaskService;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.when;
@@ -102,5 +102,34 @@ public class TaskControllerTest {
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("[*].status", everyItem(is("DONE"))));
+    }
+
+    @Test
+    public void getTaskById_taskExists_returnTask() throws Exception {
+        UUID id = UUID.randomUUID();
+        TaskView task = new TaskView(id.toString(), "title-1", "desc-1", "PENDING", LocalDateTime.now().plusDays(2));
+        when(taskService.getTaskById(ArgumentMatchers.any(UUID.class))).thenReturn(task);
+
+        mockMvc.perform(get("/api/tasks/" + id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(id.toString())));
+    }
+
+    @Test
+    public void getTaskById_taskDoNotExist_throwResourceNotFoundException() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(taskService.getTaskById(ArgumentMatchers.any(UUID.class)))
+                .thenThrow(new ResourceNotFoundException("Task with id " + id + " not found."));
+
+        mockMvc.perform(get("/api/tasks/" + id))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message", is("Task with id " + id + " not found.")));
+    }
+
+    @Test
+    public void getTaskById_invalidId_throwMethodArgumentTypeMismatchException() throws Exception {
+        mockMvc.perform(get("/api/tasks/1"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", is("Invalid UUID: 1")));
     }
 }
