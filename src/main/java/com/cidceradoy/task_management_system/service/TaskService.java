@@ -13,4 +13,5 @@ public interface TaskService {
     TaskView getTaskById(UUID id);
     UUID createTask(TaskCreateForm form);
     UUID updateTask(UUID id, TaskUpdateForm form);
+    void deleteTask(UUID id);
 }

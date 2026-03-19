@@ -10,10 +10,7 @@ import com.cidceradoy.task_management_system.repository.TaskRepository;
 import com.cidceradoy.task_management_system.service.impl.TaskServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
+import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -225,5 +222,28 @@ public class TaskServiceTest {
                 () -> taskService.updateTask(id, form));
 
         assertThat(exception.getMessage()).isEqualTo("Title already exists");
+    }
+
+    @Test
+    public void deleteTask_taskExists_taskDeleted() {
+        UUID id = UUID.randomUUID();
+
+        when(taskRepository.findById(id)).thenReturn(Optional.of(mock(Task.class)));
+
+        taskService.deleteTask(id);
+
+        verify(taskRepository, times(1)).deleteById(id);
+    }
+
+    @Test
+    public void deleteTask_taskNotExists_throwResourceNotFoundException() {
+        UUID id = UUID.randomUUID();
+
+        when(taskRepository.findById(id)).thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
+                () -> taskService.deleteTask(id));
+
+        assertThat(exception.getMessage()).isEqualTo("Task with id " + id + " not found.");
     }
 }

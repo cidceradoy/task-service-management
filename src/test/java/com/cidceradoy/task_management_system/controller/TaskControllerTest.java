@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 
@@ -23,8 +24,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.*;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -240,5 +240,29 @@ public class TaskControllerTest {
                         .content(objectMapper.writeValueAsString(form)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.dueDate", is("Due date cannot be current or past timestamp")));
+    }
+
+    @Test
+    public void deleteTask_existingTask_taskDeleted() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        doNothing().when(taskService).deleteTask(id);
+
+        mockMvc.perform(delete("/api/tasks/" + id))
+                .andExpect(status().isOk())
+                .andExpect(content().string("Task with id: " + id + " deleted."));
+
+        verify(taskService, times(1)).deleteTask(id);
+    }
+
+    @Test
+    public void deleteTask_nonExistingTask_throwResourceNotFoundException() throws Exception {
+        UUID id = UUID.randomUUID();
+        doThrow(new ResourceNotFoundException("Task with id " + id + " not found."))
+                .when(taskService).deleteTask(id);
+
+        mockMvc.perform(delete("/api/tasks/" + id))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message", is("Task with id " + id + " not found.")));
     }
 }

@@ -18,9 +18,6 @@ public class TitleValidator implements ConstraintValidator<UniqueTitle, String> 
     @Override
     public boolean isValid(String title, ConstraintValidatorContext context) {
         Optional<Task> task = taskRepository.findByTitle(title);
-        if (task.isPresent()) {
-            throw new TitleAlreadyExistsException("Title already exists");
-        }
-        return true;
+        return task.isEmpty();
     }
 }

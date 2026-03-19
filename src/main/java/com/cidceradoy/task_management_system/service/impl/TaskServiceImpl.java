@@ -76,6 +76,17 @@ public class TaskServiceImpl implements TaskService {
         return updatedTask.getId();
     }
 
+    @Override
+    @Transactional
+    public void deleteTask(UUID id) {
+        Optional<Task> task = taskRepository.findById(id);
+        if (task.isEmpty()) {
+            throw new ResourceNotFoundException("Task with id " + id + " not found.");
+        }
+
+        taskRepository.deleteById(id);
+    }
+
     private void updateNonNullFields(Task task, TaskUpdateForm form) {
         Optional.ofNullable(form.getTitle()).ifPresent(t -> {
             if (isValidTitleForUpdate(task, t)) {

@@ -61,4 +61,11 @@ public class TaskController {
                 .header("Location", uri.toString())
                 .body("Task with id: " + updatedId + " updated.");
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deleteTask(@PathVariable(value = "id") UUID id) {
+        taskService.deleteTask(id);
+        return ResponseEntity.ok()
+                .body("Task with id: " + id + " deleted.");
+    }
 }
