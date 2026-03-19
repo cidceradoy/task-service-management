@@ -10,6 +10,7 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -74,5 +75,14 @@ public class TaskRepositoryTest {
         assertThat(result).hasSize(1);
         assertThat(result).extracting(TaskView.TaskViewInterface::getTitle)
                 .containsExactly("title-4");
+    }
+
+    @Test
+    public void findByTitle_existingTitle_returnTaskWithTheTitle() {
+        Optional<Task> task = taskRepository.findByTitle("title-1");
+
+        assertThat(task.isPresent()).isTrue();
+        assertThat(task.get()).extracting(Task::getTitle)
+                .isEqualTo("title-1");
     }
 }

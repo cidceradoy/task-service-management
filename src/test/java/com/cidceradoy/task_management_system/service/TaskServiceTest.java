@@ -1,5 +1,6 @@
 package com.cidceradoy.task_management_system.service;
 
+import com.cidceradoy.task_management_system.dto.TaskForm;
 import com.cidceradoy.task_management_system.dto.TaskView;
 import com.cidceradoy.task_management_system.exception.ResourceNotFoundException;
 import com.cidceradoy.task_management_system.model.Task;
@@ -35,6 +36,9 @@ public class TaskServiceTest {
 
     @Captor
     ArgumentCaptor<Task.Status> statusCaptor;
+
+    @Captor
+    ArgumentCaptor<Task> taskCaptor;
 
     @Test
     public void getTasks_statusIsNullAndEmptyTasks_returnEmptyList() {
@@ -152,5 +156,20 @@ public class TaskServiceTest {
                 () -> taskService.getTaskById(id));
 
         assertThat(exception.getMessage()).isEqualTo("Task with id " + id + " not found.");
+    }
+
+    @Test
+    public void createTask_returnIdOfNewTask() {
+        TaskForm form = new TaskForm("t-1", "d-1", "PENDING", LocalDateTime.now().plusDays(1));
+
+        Task task = new Task("t-1", "d-1", Task.Status.PENDING, LocalDateTime.now().plusDays(1));
+        ReflectionTestUtils.setField(task, "id", UUID.randomUUID());
+
+        when(taskRepository.save(any(Task.class))).thenReturn(task);
+
+        UUID id = taskService.createTask(form);
+
+        verify(taskRepository, times(1)).save(any(Task.class));
+        assertThat(id).isEqualTo(task.getId());
     }
 }

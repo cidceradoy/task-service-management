@@ -1,13 +1,16 @@
 package com.cidceradoy.task_management_system.controller;
 
+import com.cidceradoy.task_management_system.dto.TaskForm;
 import com.cidceradoy.task_management_system.dto.TaskView;
 import com.cidceradoy.task_management_system.exception.ResourceNotFoundException;
 import com.cidceradoy.task_management_system.model.Task;
+import com.cidceradoy.task_management_system.repository.TaskRepository;
 import com.cidceradoy.task_management_system.service.TaskService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -16,13 +19,15 @@ import tools.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.*;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(TaskController.class)
 public class TaskControllerTest {
@@ -35,6 +40,9 @@ public class TaskControllerTest {
 
     @MockitoBean
     private TaskService taskService;
+
+    @MockitoBean
+    private TaskRepository taskRepository;
 
     @Test
     public void getTasks_databaseEmpty_returnEmptyTasks() throws Exception {
@@ -131,5 +139,53 @@ public class TaskControllerTest {
         mockMvc.perform(get("/api/tasks/1"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message", is("Invalid UUID: 1")));
+    }
+
+    @Test
+    public void createTask_validRequestBody_createNewTask() throws Exception {
+        UUID id = UUID.randomUUID();
+        TaskForm form = new TaskForm("t-1", "d-1", "PENDING", LocalDateTime.now().plusDays(1));
+        when(taskService.createTask(ArgumentMatchers.any(TaskForm.class))).thenReturn(id);
+
+        mockMvc.perform(post("/api/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(form)))
+                .andExpect(status().isCreated())
+                .andExpect(content().string("Task with id: " + id + " created."));
+    }
+
+    @Test
+    public void createTask_existingTitle_throwMethodArgumentNotValidException() throws Exception {
+        TaskForm form = new TaskForm("t-1", "d-1", "PENDING", LocalDateTime.now().plusDays(1));
+        Task existingTask = mock(Task.class);
+        when(taskRepository.findByTitle(ArgumentMatchers.any(String.class))).thenReturn(Optional.of(existingTask));
+
+        mockMvc.perform(post("/api/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(form)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title", is("Title should be unique")));
+    }
+
+    @Test
+    public void createTask_pastDueDate_throwMethodArgumentNotValidException() throws Exception {
+        TaskForm form = new TaskForm("t-1", "d-1", "PENDING", LocalDateTime.now().minusDays(1));
+
+        mockMvc.perform(post("/api/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(form)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.dueDate", is("Due date cannot be current or past timestamp")));
+    }
+
+    @Test
+    public void createTask_invalidStatusType_throwHttpMessageNotReadableException() throws Exception {
+        TaskForm form = new TaskForm("t-1", "d-1", "notvalidstatus", LocalDateTime.now().plusDays(1));
+
+        mockMvc.perform(post("/api/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(form)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status", is("Status must be one of values: [DONE, IN_PROGRESS, PENDING]")));
     }
 }

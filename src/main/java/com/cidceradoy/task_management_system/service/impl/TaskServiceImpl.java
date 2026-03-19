@@ -1,10 +1,12 @@
 package com.cidceradoy.task_management_system.service.impl;
 
+import com.cidceradoy.task_management_system.dto.TaskForm;
 import com.cidceradoy.task_management_system.dto.TaskView;
 import com.cidceradoy.task_management_system.exception.ResourceNotFoundException;
 import com.cidceradoy.task_management_system.model.Task;
 import com.cidceradoy.task_management_system.repository.TaskRepository;
 import com.cidceradoy.task_management_system.service.TaskService;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -45,5 +47,13 @@ public class TaskServiceImpl implements TaskService {
                 .map(t -> new TaskView(t.getId().toString(), t.getTitle(), t.getDescription(),
                         t.getStatus().name(), t.getDueDate()))
                 .orElseThrow(() -> new ResourceNotFoundException("Task with id " + id + " not found."));
+    }
+
+    @Override
+    @Transactional
+    public UUID createTask(TaskForm form) {
+        Task newTask = new Task(form.getTitle(), form.getDescription(), Task.Status.valueOf(form.getStatus()), form.getDueDate());
+        Task createdTask = taskRepository.save(newTask);
+        return createdTask.getId();
     }
 }

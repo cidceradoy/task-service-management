@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -29,4 +30,9 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
             "FROM Task t " +
             "WHERE t.status = :status")
     List<TaskView.TaskViewInterface> getTasksByStatus(@Param(value = "status") Task.Status status);
+
+    @Query("SELECT t " +
+            "FROM Task t " +
+            "WHERE t.title = :title")
+    Optional<Task> findByTitle(String title);
 }
