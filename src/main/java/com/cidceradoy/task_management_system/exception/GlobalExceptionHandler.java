@@ -41,4 +41,10 @@ public class GlobalExceptionHandler {
         Map<String, String> error = Map.of("message", exception.getLocalizedMessage());
         return ResponseEntity.badRequest().body(error);
     }
+
+    @ExceptionHandler(TitleAlreadyExistsException.class)
+    public ResponseEntity<Map<String, String>> handleTitleAlreadyExistsException(TitleAlreadyExistsException exception) {
+        Map<String, String> error = Map.of("message", "Title already exists.");
+        return ResponseEntity.badRequest().body(error);
+    }
 }

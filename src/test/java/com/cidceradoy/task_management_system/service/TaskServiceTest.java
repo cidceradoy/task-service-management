@@ -1,8 +1,10 @@
 package com.cidceradoy.task_management_system.service;
 
-import com.cidceradoy.task_management_system.dto.TaskForm;
+import com.cidceradoy.task_management_system.dto.TaskCreateForm;
+import com.cidceradoy.task_management_system.dto.TaskUpdateForm;
 import com.cidceradoy.task_management_system.dto.TaskView;
 import com.cidceradoy.task_management_system.exception.ResourceNotFoundException;
+import com.cidceradoy.task_management_system.exception.TitleAlreadyExistsException;
 import com.cidceradoy.task_management_system.model.Task;
 import com.cidceradoy.task_management_system.repository.TaskRepository;
 import com.cidceradoy.task_management_system.service.impl.TaskServiceImpl;
@@ -160,7 +162,7 @@ public class TaskServiceTest {
 
     @Test
     public void createTask_returnIdOfNewTask() {
-        TaskForm form = new TaskForm("t-1", "d-1", "PENDING", LocalDateTime.now().plusDays(1));
+        TaskCreateForm form = new TaskCreateForm("t-1", "d-1", "PENDING", LocalDateTime.now().plusDays(1));
 
         Task task = new Task("t-1", "d-1", Task.Status.PENDING, LocalDateTime.now().plusDays(1));
         ReflectionTestUtils.setField(task, "id", UUID.randomUUID());
@@ -171,5 +173,57 @@ public class TaskServiceTest {
 
         verify(taskRepository, times(1)).save(any(Task.class));
         assertThat(id).isEqualTo(task.getId());
+    }
+
+    @Test
+    public void updateTask_validFormAndId_updateTask() {
+        UUID id = UUID.randomUUID();
+        TaskUpdateForm form = new TaskUpdateForm("t-1", "d-1", "PENDING", LocalDateTime.now().plusDays(1));
+
+        Task task = new Task("t-1", "d-1", Task.Status.PENDING, LocalDateTime.now().plusDays(1));
+        ReflectionTestUtils.setField(task, "id", id);
+
+        when(taskRepository.findById(any(UUID.class))).thenReturn(Optional.of(task));
+        when(taskRepository.findByTitle(task.getTitle())).thenReturn(Optional.empty());
+        when(taskRepository.save(any(Task.class))).thenReturn(task);
+
+        UUID result = taskService.updateTask(id, form);
+
+        verify(taskRepository, times(1)).save(taskCaptor.capture());
+        assertThat(result).isEqualTo(taskCaptor.getValue().getId());
+    }
+
+    @Test
+    public void updateTask_nonExistingTask_throwResourceNotFoundException() {
+        UUID id = UUID.randomUUID();
+        TaskUpdateForm form = mock(TaskUpdateForm.class);
+
+        when(taskRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
+                () -> taskService.updateTask(id, form));
+
+        assertThat(exception.getMessage()).isEqualTo("Task with id " + id + " not found.");
+    }
+
+    @Test
+    public void updateTask_titleInvalid_throwTitleAlreadyExistsException() {
+        UUID id = UUID.randomUUID();
+        TaskUpdateForm form = new TaskUpdateForm("t-1", "d-1", "PENDING", LocalDateTime.now().plusDays(1));
+
+        Task task = new Task("t-1", "d-1", Task.Status.PENDING, LocalDateTime.now().plusDays(1));
+        ReflectionTestUtils.setField(task, "id", id);
+
+        UUID id2 = UUID.randomUUID();
+        Task task2 = new Task("t-1", "d-1", Task.Status.PENDING, LocalDateTime.now().plusDays(1));
+        ReflectionTestUtils.setField(task, "id", id2);
+
+        when(taskRepository.findById(id)).thenReturn(Optional.of(task));
+        when(taskRepository.findByTitle("t-1")).thenReturn(Optional.of(task2));
+
+        TitleAlreadyExistsException exception = assertThrows(TitleAlreadyExistsException.class,
+                () -> taskService.updateTask(id, form));
+
+        assertThat(exception.getMessage()).isEqualTo("Title already exists");
     }
 }

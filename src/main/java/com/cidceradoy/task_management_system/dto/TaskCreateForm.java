@@ -4,10 +4,11 @@ import com.cidceradoy.task_management_system.validation.UniqueTitle;
 import com.cidceradoy.task_management_system.validation.ValidStatus;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDateTime;
 
-public class TaskForm {
+public class TaskCreateForm {
 
     @UniqueTitle
     private String title;
@@ -16,12 +17,14 @@ public class TaskForm {
     private String description;
 
     @ValidStatus
+    @NotBlank
     private String status;
 
     @Future(message = "Due date cannot be current or past timestamp")
+    @NotNull
     private LocalDateTime dueDate;
 
-    public TaskForm(String title, String description, String status, LocalDateTime dueDate) {
+    public TaskCreateForm(String title, String description, String status, LocalDateTime dueDate) {
         this.title = title;
         this.description = description;
         this.status = status;

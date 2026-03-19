@@ -52,6 +52,22 @@ public class Task {
         return dueDate;
     }
 
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public void setStatus(Status status) {
+        this.status = status;
+    }
+
+    public void setDueDate(LocalDateTime dueDate) {
+        this.dueDate = dueDate;
+    }
+
     protected Task() {
         // required by JPA
     }

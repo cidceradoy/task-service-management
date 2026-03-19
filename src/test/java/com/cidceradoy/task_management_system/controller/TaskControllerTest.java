@@ -1,6 +1,7 @@
 package com.cidceradoy.task_management_system.controller;
 
-import com.cidceradoy.task_management_system.dto.TaskForm;
+import com.cidceradoy.task_management_system.dto.TaskCreateForm;
+import com.cidceradoy.task_management_system.dto.TaskUpdateForm;
 import com.cidceradoy.task_management_system.dto.TaskView;
 import com.cidceradoy.task_management_system.exception.ResourceNotFoundException;
 import com.cidceradoy.task_management_system.model.Task;
@@ -13,7 +14,6 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
@@ -25,8 +25,7 @@ import java.util.UUID;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(TaskController.class)
@@ -144,8 +143,8 @@ public class TaskControllerTest {
     @Test
     public void createTask_validRequestBody_createNewTask() throws Exception {
         UUID id = UUID.randomUUID();
-        TaskForm form = new TaskForm("t-1", "d-1", "PENDING", LocalDateTime.now().plusDays(1));
-        when(taskService.createTask(ArgumentMatchers.any(TaskForm.class))).thenReturn(id);
+        TaskCreateForm form = new TaskCreateForm("t-1", "d-1", "PENDING", LocalDateTime.now().plusDays(1));
+        when(taskService.createTask(ArgumentMatchers.any(TaskCreateForm.class))).thenReturn(id);
 
         mockMvc.perform(post("/api/tasks")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -156,7 +155,7 @@ public class TaskControllerTest {
 
     @Test
     public void createTask_existingTitle_throwMethodArgumentNotValidException() throws Exception {
-        TaskForm form = new TaskForm("t-1", "d-1", "PENDING", LocalDateTime.now().plusDays(1));
+        TaskCreateForm form = new TaskCreateForm("t-1", "d-1", "PENDING", LocalDateTime.now().plusDays(1));
         Task existingTask = mock(Task.class);
         when(taskRepository.findByTitle(ArgumentMatchers.any(String.class))).thenReturn(Optional.of(existingTask));
 
@@ -169,7 +168,7 @@ public class TaskControllerTest {
 
     @Test
     public void createTask_pastDueDate_throwMethodArgumentNotValidException() throws Exception {
-        TaskForm form = new TaskForm("t-1", "d-1", "PENDING", LocalDateTime.now().minusDays(1));
+        TaskCreateForm form = new TaskCreateForm("t-1", "d-1", "PENDING", LocalDateTime.now().minusDays(1));
 
         mockMvc.perform(post("/api/tasks")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -180,12 +179,66 @@ public class TaskControllerTest {
 
     @Test
     public void createTask_invalidStatusType_throwHttpMessageNotReadableException() throws Exception {
-        TaskForm form = new TaskForm("t-1", "d-1", "notvalidstatus", LocalDateTime.now().plusDays(1));
+        TaskCreateForm form = new TaskCreateForm("t-1", "d-1", "notvalidstatus", LocalDateTime.now().plusDays(1));
 
         mockMvc.perform(post("/api/tasks")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(form)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status", is("Status must be one of values: [DONE, IN_PROGRESS, PENDING]")));
+    }
+
+    @Test
+    public void updateTask_validRequestBodyAndId_updateTask() throws Exception {
+        TaskUpdateForm form = new TaskUpdateForm("t-1", "d-1", "PENDING", LocalDateTime.now().plusDays(1));
+        UUID id = UUID.randomUUID();
+
+        when(taskService.updateTask(ArgumentMatchers.any(UUID.class), ArgumentMatchers.any(TaskUpdateForm.class))).thenReturn(id);
+
+        mockMvc.perform(put("/api/tasks/" + id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(form)))
+                .andExpect(status().isOk())
+                .andExpect(content().string("Task with id: " + id + " updated."));
+    }
+
+    @Test
+    public void updateTask_taskDoNotExists_throwResourceNotFoundException() throws Exception {
+        UUID id = UUID.randomUUID();
+        TaskCreateForm form = new TaskCreateForm("t-1", "d-1", "PENDING", LocalDateTime.now().plusDays(1));
+
+        when(taskService.updateTask(ArgumentMatchers.any(UUID.class), ArgumentMatchers.any(TaskUpdateForm.class)))
+                .thenThrow(new ResourceNotFoundException("Task with id " + id + " not found."));
+
+        mockMvc.perform(put("/api/tasks/" + id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(form)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message", is("Task with id " + id + " not found.")));
+    }
+
+    @Test
+    public void updateTask_statusNotValid_throwMethodArgumentTypeMismatchException() throws Exception {
+        UUID id = UUID.randomUUID();
+        TaskCreateForm form = new TaskCreateForm("t-1", "d-1", "notvalid", LocalDateTime.now().plusDays(1));
+
+        mockMvc.perform(put("/api/tasks/" + id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(form)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status", is("Status must be one of values: [DONE, IN_PROGRESS, PENDING]")));
+    }
+
+    @Test
+    public void updateTask_pastDueDate_throwMethodArgumentTypeMismatchException() throws Exception {
+        UUID id = UUID.randomUUID();
+        TaskCreateForm form = new TaskCreateForm("t-1", "d-1", "PENDING", LocalDateTime.now().minusDays(1));
+
+
+        mockMvc.perform(put("/api/tasks/" + id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(form)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.dueDate", is("Due date cannot be current or past timestamp")));
     }
 }

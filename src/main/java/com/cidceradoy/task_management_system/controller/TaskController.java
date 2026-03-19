@@ -1,13 +1,12 @@
 package com.cidceradoy.task_management_system.controller;
 
-import com.cidceradoy.task_management_system.dto.TaskForm;
+import com.cidceradoy.task_management_system.dto.TaskCreateForm;
+import com.cidceradoy.task_management_system.dto.TaskUpdateForm;
 import com.cidceradoy.task_management_system.dto.TaskView;
 import com.cidceradoy.task_management_system.model.Task;
 import com.cidceradoy.task_management_system.service.TaskService;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -37,14 +36,29 @@ public class TaskController {
     }
 
     @PostMapping
-    public ResponseEntity<String> createTask(@Valid @RequestBody TaskForm form, UriComponentsBuilder uriBuilder) {
+    public ResponseEntity<String> createTask(@Valid @RequestBody TaskCreateForm form, UriComponentsBuilder uriBuilder) {
         UUID createdId = taskService.createTask(form);
 
         URI uri = uriBuilder
-                .path("/tasks/{id}")
+                .path("/api/tasks/{id}")
                 .buildAndExpand(createdId)
                 .toUri();
 
         return ResponseEntity.created(uri).body("Task with id: " + createdId + " created.");
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<String> updateTask(@PathVariable(value = "id") UUID id, @Valid @RequestBody TaskUpdateForm form,
+                                             UriComponentsBuilder uriBuilder) {
+        UUID updatedId = taskService.updateTask(id, form);
+
+        URI uri = uriBuilder
+                .path("/api/tasks/{id}")
+                .buildAndExpand(updatedId)
+                .toUri();
+
+        return ResponseEntity.ok()
+                .header("Location", uri.toString())
+                .body("Task with id: " + updatedId + " updated.");
     }
 }
