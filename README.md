@@ -38,3 +38,4 @@ docker run -d \
 ```bash
 .\mvnw clean test or ./mvnw clean test
 ```
+- A JSON file (Task.postman_collection.json) containing a Postman collection is included in the root directory to test the API endpoints. You can import it into tools such as Postman, Insomnia, or Bruno.
