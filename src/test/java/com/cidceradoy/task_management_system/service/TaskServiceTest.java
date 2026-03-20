@@ -1,8 +1,8 @@
 package com.cidceradoy.task_management_system.service;
 
-import com.cidceradoy.task_management_system.dto.TaskCreateForm;
-import com.cidceradoy.task_management_system.dto.TaskUpdateForm;
+import com.cidceradoy.task_management_system.dto.TaskForm;
 import com.cidceradoy.task_management_system.dto.TaskView;
+import com.cidceradoy.task_management_system.exception.InvalidStatusException;
 import com.cidceradoy.task_management_system.exception.ResourceNotFoundException;
 import com.cidceradoy.task_management_system.exception.TitleAlreadyExistsException;
 import com.cidceradoy.task_management_system.model.Task;
@@ -10,7 +10,10 @@ import com.cidceradoy.task_management_system.repository.TaskRepository;
 import com.cidceradoy.task_management_system.service.impl.TaskServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -158,8 +161,8 @@ public class TaskServiceTest {
     }
 
     @Test
-    public void createTask_returnIdOfNewTask() {
-        TaskCreateForm form = new TaskCreateForm("t-1", "d-1", "PENDING", LocalDateTime.now().plusDays(1));
+    public void createTask_validForm_returnIdOfNewTask() {
+        TaskForm form = new TaskForm("t-1", "d-1", "PENDING", LocalDateTime.now().plusDays(1));
 
         Task task = new Task("t-1", "d-1", Task.Status.PENDING, LocalDateTime.now().plusDays(1));
         ReflectionTestUtils.setField(task, "id", UUID.randomUUID());
@@ -173,9 +176,31 @@ public class TaskServiceTest {
     }
 
     @Test
+    public void createTask_dueDatePastAndStatusPending_throwInvalidStatusException() {
+        TaskForm form = new TaskForm("t-1", "d-1", "PENDING", LocalDateTime.now().minusDays(1));
+
+        InvalidStatusException exception = assertThrows(InvalidStatusException.class,
+                () -> taskService.createTask(form));
+
+        assertThat(exception.getMessage()).isEqualTo("PENDING status cannot be set when due date is in the past");
+    }
+
+    @Test
+    public void createTask_titleAlreadyExists_throwTitleAlreadyExistsException() {
+        TaskForm form = new TaskForm("t-1", "d-1", "PENDING", LocalDateTime.now().plusDays(1));
+
+        when(taskRepository.findByTitle(any(String.class))).thenReturn(Optional.of(mock(Task.class)));
+
+        TitleAlreadyExistsException exception = assertThrows(TitleAlreadyExistsException.class,
+                () -> taskService.createTask(form));
+
+        assertThat(exception.getMessage()).isEqualTo("Task with title: " + form.getTitle() + " already exists.");
+    }
+
+    @Test
     public void updateTask_validFormAndId_updateTask() {
         UUID id = UUID.randomUUID();
-        TaskUpdateForm form = new TaskUpdateForm("t-1", "d-1", "PENDING", LocalDateTime.now().plusDays(1));
+        TaskForm form = new TaskForm("t-1", "d-1", "PENDING", LocalDateTime.now().plusDays(1));
 
         Task task = new Task("t-1", "d-1", Task.Status.PENDING, LocalDateTime.now().plusDays(1));
         ReflectionTestUtils.setField(task, "id", id);
@@ -193,7 +218,7 @@ public class TaskServiceTest {
     @Test
     public void updateTask_nonExistingTask_throwResourceNotFoundException() {
         UUID id = UUID.randomUUID();
-        TaskUpdateForm form = mock(TaskUpdateForm.class);
+        TaskForm form = mock(TaskForm.class);
 
         when(taskRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
 
@@ -206,7 +231,7 @@ public class TaskServiceTest {
     @Test
     public void updateTask_titleInvalid_throwTitleAlreadyExistsException() {
         UUID id = UUID.randomUUID();
-        TaskUpdateForm form = new TaskUpdateForm("t-1", "d-1", "PENDING", LocalDateTime.now().plusDays(1));
+        TaskForm form = new TaskForm("t-1", "d-1", "PENDING", LocalDateTime.now().plusDays(1));
 
         Task task = new Task("t-1", "d-1", Task.Status.PENDING, LocalDateTime.now().plusDays(1));
         ReflectionTestUtils.setField(task, "id", id);
@@ -221,7 +246,20 @@ public class TaskServiceTest {
         TitleAlreadyExistsException exception = assertThrows(TitleAlreadyExistsException.class,
                 () -> taskService.updateTask(id, form));
 
-        assertThat(exception.getMessage()).isEqualTo("Title already exists");
+        assertThat(exception.getMessage()).isEqualTo("Task with title: " + form.getTitle() + " already exists.");
+    }
+
+    @Test
+    public void updateTask_dueDatePastAndStatusPending_throwInvalidStatusException() {
+        TaskForm form = new TaskForm("t-1", "d-1", "PENDING", LocalDateTime.now().minusDays(1));
+        UUID id = UUID.randomUUID();
+
+        when(taskRepository.findById(id)).thenReturn(Optional.of(mock(Task.class)));
+
+        InvalidStatusException exception = assertThrows(InvalidStatusException.class,
+                () -> taskService.updateTask(id, form));
+
+        assertThat(exception.getMessage()).isEqualTo("PENDING status cannot be set when due date is in the past");
     }
 
     @Test

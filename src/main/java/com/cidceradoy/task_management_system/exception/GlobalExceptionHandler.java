@@ -21,8 +21,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<Map<String, String>> handleMethodArgumentNotValidException(MethodArgumentTypeMismatchException exception) {
-        Map<String, String> error = Map.of("message", "Invalid UUID: " + exception.getValue());
+    public ResponseEntity<Map<String, String>> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException exception) {
+        Map<String, String> error = Map.of("message", exception.getCause().getMessage());
         return ResponseEntity.badRequest().body(error);
     }
 
@@ -31,7 +31,7 @@ public class GlobalExceptionHandler {
         Map<String, String> errors = new HashMap<>();
         exception.getBindingResult()
                 .getFieldErrors()
-                .forEach(error -> errors.putIfAbsent(error.getField(), error.getDefaultMessage()));
+                .forEach(error -> errors.put(error.getField(), error.getDefaultMessage()));
 
         return ResponseEntity.badRequest().body(errors);
     }
@@ -44,7 +44,13 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(TitleAlreadyExistsException.class)
     public ResponseEntity<Map<String, String>> handleTitleAlreadyExistsException(TitleAlreadyExistsException exception) {
-        Map<String, String> error = Map.of("message", "Title already exists.");
+        Map<String, String> error = Map.of("message", exception.getMessage());
+        return ResponseEntity.badRequest().body(error);
+    }
+
+    @ExceptionHandler(InvalidStatusException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidStatusException(InvalidStatusException exception) {
+        Map<String, String> error = Map.of("message", exception.getMessage());
         return ResponseEntity.badRequest().body(error);
     }
 }

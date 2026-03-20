@@ -1,16 +1,15 @@
 package com.cidceradoy.task_management_system.service.impl;
 
-import com.cidceradoy.task_management_system.dto.TaskCreateForm;
-import com.cidceradoy.task_management_system.dto.TaskUpdateForm;
+import com.cidceradoy.task_management_system.dto.TaskForm;
 import com.cidceradoy.task_management_system.dto.TaskView;
+import com.cidceradoy.task_management_system.exception.InvalidStatusException;
 import com.cidceradoy.task_management_system.exception.ResourceNotFoundException;
 import com.cidceradoy.task_management_system.exception.TitleAlreadyExistsException;
 import com.cidceradoy.task_management_system.model.Task;
 import com.cidceradoy.task_management_system.repository.TaskRepository;
 import com.cidceradoy.task_management_system.service.TaskService;
-import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -28,6 +27,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<TaskView> getTasks(Task.Status status) {
         if (Objects.isNull(status)) {
             return taskRepository.getTasks()
@@ -46,6 +46,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public TaskView getTaskById(UUID id) {
         return taskRepository.findById(id)
                 .map(t -> new TaskView(t.getId().toString(), t.getTitle(), t.getDescription(),
@@ -55,7 +56,16 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional
-    public UUID createTask(TaskCreateForm form) {
+    public UUID createTask(TaskForm form) {
+        if (form.getDueDate().isBefore(LocalDateTime.now()) && form.getStatus().equals("PENDING")) {
+            throw new InvalidStatusException("PENDING status cannot be set when due date is in the past");
+        }
+
+        Optional<Task> task = taskRepository.findByTitle(form.getTitle());
+        if (task.isPresent()) {
+            throw new TitleAlreadyExistsException("Task with title: " + form.getTitle() + " already exists.");
+        }
+
         Task newTask = new Task(form.getTitle(), form.getDescription(), Task.Status.valueOf(form.getStatus()), form.getDueDate());
         Task createdTask = taskRepository.save(newTask);
         return createdTask.getId();
@@ -63,13 +73,25 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional
-    public UUID updateTask(UUID id, TaskUpdateForm form) {
+    public UUID updateTask(UUID id, TaskForm form) {
         Optional<Task> task = taskRepository.findById(id);
         if (task.isEmpty()) {
             throw new ResourceNotFoundException("Task with id " + id + " not found.");
         }
 
-        updateNonNullFields(task.get(), form);
+        if (Objects.nonNull(form.getDueDate()) && Objects.nonNull(form.getStatus()) &&
+                form.getDueDate().isBefore(LocalDateTime.now()) && form.getStatus().equals("PENDING")) {
+            throw new InvalidStatusException("PENDING status cannot be set when due date is in the past");
+        }
+
+        if (!isTitleUnique(task.get(), form.getTitle())) {
+            throw new TitleAlreadyExistsException("Task with title: " + form.getTitle() + " already exists.");
+        }
+
+        task.get().setTitle(form.getTitle());
+        task.get().setDescription(form.getDescription());
+        task.get().setStatus(Task.Status.valueOf(form.getStatus()));
+        task.get().setDueDate(form.getDueDate());
 
         Task updatedTask = taskRepository.save(task.get());
 
@@ -87,21 +109,7 @@ public class TaskServiceImpl implements TaskService {
         taskRepository.deleteById(id);
     }
 
-    private void updateNonNullFields(Task task, TaskUpdateForm form) {
-        Optional.ofNullable(form.getTitle()).ifPresent(t -> {
-            if (isValidTitleForUpdate(task, t)) {
-                task.setTitle(t);
-            } else {
-                throw new TitleAlreadyExistsException("Title already exists");
-            }
-        });
-
-        Optional.ofNullable(form.getDescription()).ifPresent(task::setDescription);
-        Optional.ofNullable(form.getStatus()).map(Task.Status::valueOf).ifPresent(task::setStatus);
-        Optional.ofNullable(form.getDueDate()).ifPresent(task::setDueDate);
-    }
-
-    private boolean isValidTitleForUpdate(Task task, String title) {
+    private boolean isTitleUnique(Task task, String title) {
         Optional<Task> t = taskRepository.findByTitle(title);
         return t.isEmpty() || Objects.equals(t.get().getId(), task.getId());
     }

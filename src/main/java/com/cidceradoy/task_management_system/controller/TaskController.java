@@ -1,7 +1,7 @@
 package com.cidceradoy.task_management_system.controller;
 
-import com.cidceradoy.task_management_system.dto.TaskCreateForm;
-import com.cidceradoy.task_management_system.dto.TaskUpdateForm;
+import com.cidceradoy.task_management_system.dto.SuccessView;
+import com.cidceradoy.task_management_system.dto.TaskForm;
 import com.cidceradoy.task_management_system.dto.TaskView;
 import com.cidceradoy.task_management_system.model.Task;
 import com.cidceradoy.task_management_system.service.TaskService;
@@ -12,6 +12,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -36,7 +37,7 @@ public class TaskController {
     }
 
     @PostMapping
-    public ResponseEntity<String> createTask(@Valid @RequestBody TaskCreateForm form, UriComponentsBuilder uriBuilder) {
+    public ResponseEntity<SuccessView> createTask(@Valid @RequestBody TaskForm form, UriComponentsBuilder uriBuilder) {
         UUID createdId = taskService.createTask(form);
 
         URI uri = uriBuilder
@@ -44,11 +45,11 @@ public class TaskController {
                 .buildAndExpand(createdId)
                 .toUri();
 
-        return ResponseEntity.created(uri).body("Task with id: " + createdId + " created.");
+        return ResponseEntity.created(uri).body(new SuccessView("Task with id: " + createdId + " created."));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<String> updateTask(@PathVariable(value = "id") UUID id, @Valid @RequestBody TaskUpdateForm form,
+    public ResponseEntity<SuccessView> updateTask(@PathVariable(value = "id") UUID id, @Valid @RequestBody TaskForm form,
                                              UriComponentsBuilder uriBuilder) {
         UUID updatedId = taskService.updateTask(id, form);
 
@@ -59,13 +60,13 @@ public class TaskController {
 
         return ResponseEntity.ok()
                 .header("Location", uri.toString())
-                .body("Task with id: " + updatedId + " updated.");
+                .body(new SuccessView("Task with id: " + updatedId + " updated."));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteTask(@PathVariable(value = "id") UUID id) {
+    public ResponseEntity<SuccessView> deleteTask(@PathVariable(value = "id") UUID id) {
         taskService.deleteTask(id);
         return ResponseEntity.ok()
-                .body("Task with id: " + id + " deleted.");
+                .body(new SuccessView("Task with id: " + id + " deleted."));
     }
 }
