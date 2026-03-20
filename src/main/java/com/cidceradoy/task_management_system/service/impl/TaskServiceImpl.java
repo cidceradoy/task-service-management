@@ -8,6 +8,8 @@ import com.cidceradoy.task_management_system.exception.TitleAlreadyExistsExcepti
 import com.cidceradoy.task_management_system.model.Task;
 import com.cidceradoy.task_management_system.repository.TaskRepository;
 import com.cidceradoy.task_management_system.service.TaskService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,21 +30,17 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<TaskView> getTasks(Task.Status status) {
+    public Page<TaskView> getTasks(Task.Status status, Pageable pageable) {
         if (Objects.isNull(status)) {
-            return taskRepository.getTasks()
-                    .stream()
+            return taskRepository.getTasks(pageable)
                     .map(taskViewInterface -> new TaskView(taskViewInterface.getId(),
                             taskViewInterface.getTitle(), taskViewInterface.getDescription(),
-                            taskViewInterface.getStatus(), taskViewInterface.getDueDate()))
-                    .toList();
+                            taskViewInterface.getStatus(), taskViewInterface.getDueDate()));
         }
-        return taskRepository.getTasksByStatus(status)
-                .stream()
+        return taskRepository.getTasksByStatus(status, pageable)
                 .map(taskViewInterface -> new TaskView(taskViewInterface.getId(),
                         taskViewInterface.getTitle(), taskViewInterface.getDescription(),
-                        taskViewInterface.getStatus(), taskViewInterface.getDueDate()))
-                .toList();
+                        taskViewInterface.getStatus(), taskViewInterface.getDueDate()));
     }
 
     @Override

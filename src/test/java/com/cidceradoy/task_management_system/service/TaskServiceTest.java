@@ -10,11 +10,11 @@ import com.cidceradoy.task_management_system.repository.TaskRepository;
 import com.cidceradoy.task_management_system.service.impl.TaskServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
+import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
@@ -44,17 +44,19 @@ public class TaskServiceTest {
 
     @Test
     public void getTasks_statusIsNullAndEmptyTasks_returnEmptyList() {
-        when(taskRepository.getTasks()).thenReturn(Collections.emptyList());
+        Pageable pageable = mock(Pageable.class);
+        when(taskRepository.getTasks(pageable)).thenReturn(Page.empty());
 
-        List<TaskView> result = taskService.getTasks(null);
+        Page<TaskView> result = taskService.getTasks(null, pageable);
 
-        verify(taskRepository, times(1)).getTasks();
+        verify(taskRepository, times(1)).getTasks(pageable);
         assertThat(result).isNotNull();
         assertThat(result).hasSize(0);
     }
 
     @Test
     public void getTasks_statusIsNull_returnAllTasks() {
+        Pageable pageable = mock(Pageable.class);
         TaskView.TaskViewInterface task1 = mock(TaskView.TaskViewInterface.class);
         TaskView.TaskViewInterface task2 = mock(TaskView.TaskViewInterface.class);
         TaskView.TaskViewInterface task3 = mock(TaskView.TaskViewInterface.class);
@@ -63,13 +65,13 @@ public class TaskServiceTest {
         when(task2.getStatus()).thenReturn("IN_PROGRESS");
         when(task3.getStatus()).thenReturn("DONE");
 
-        when(taskRepository.getTasks()).thenReturn(
-          List.of(task1, task2, task3)
+        when(taskRepository.getTasks(pageable)).thenReturn(
+          new PageImpl<>(List.of(task1, task2, task3))
         );
 
-        List<TaskView> result = taskService.getTasks(null);
+        Page<TaskView> result = taskService.getTasks(null, pageable);
 
-        verify(taskRepository, times(1)).getTasks();
+        verify(taskRepository, times(1)).getTasks(pageable);
         assertThat(result).isNotNull();
         assertThat(result).hasSize(3);
         assertThat(result).extracting(TaskView::getStatus)
@@ -78,16 +80,19 @@ public class TaskServiceTest {
 
     @Test
     public void getTasks_statusIsPending_returnPendingTasks() {
+        Pageable pageable = mock(Pageable.class);
         TaskView.TaskViewInterface task = mock(TaskView.TaskViewInterface.class);
         when(task.getStatus()).thenReturn("PENDING");
 
-        when(taskRepository.getTasksByStatus(Task.Status.PENDING)).thenReturn(
-                List.of(task)
+        when(taskRepository.getTasksByStatus(Task.Status.PENDING, pageable)).thenReturn(
+                new PageImpl<>(
+                        List.of(task)
+                )
         );
 
-        List<TaskView> result = taskService.getTasks(Task.Status.PENDING);
+        Page<TaskView> result = taskService.getTasks(Task.Status.PENDING, pageable);
 
-        verify(taskRepository, times(1)).getTasksByStatus(statusCaptor.capture());
+        verify(taskRepository, times(1)).getTasksByStatus(statusCaptor.capture(), ArgumentMatchers.eq(pageable));
         assertThat(statusCaptor.getValue()).isEqualTo(Task.Status.PENDING);
         assertThat(result).isNotNull();
         assertThat(result).hasSize(1);
@@ -97,16 +102,19 @@ public class TaskServiceTest {
 
     @Test
     public void getTasks_statusIsInProgress_returnInProgressTasks() {
+        Pageable pageable = mock(Pageable.class);
         TaskView.TaskViewInterface task = mock(TaskView.TaskViewInterface.class);
         when(task.getStatus()).thenReturn("IN_PROGRESS");
 
-        when(taskRepository.getTasksByStatus(Task.Status.IN_PROGRESS)).thenReturn(
-            List.of(task)
+        when(taskRepository.getTasksByStatus(Task.Status.IN_PROGRESS, pageable)).thenReturn(
+                new PageImpl<>(
+                        List.of(task)
+                )
         );
 
-        List<TaskView> result = taskService.getTasks(Task.Status.IN_PROGRESS);
+        Page<TaskView> result = taskService.getTasks(Task.Status.IN_PROGRESS, pageable);
 
-        verify(taskRepository, times(1)).getTasksByStatus(statusCaptor.capture());
+        verify(taskRepository, times(1)).getTasksByStatus(statusCaptor.capture(), ArgumentMatchers.eq(pageable));
         assertThat(statusCaptor.getValue()).isEqualTo(Task.Status.IN_PROGRESS);
         assertThat(result).isNotNull();
         assertThat(result).hasSize(1);
@@ -116,16 +124,19 @@ public class TaskServiceTest {
 
     @Test
     public void getTasks_statusIsDone_returnDoneTasks() {
+        Pageable pageable = mock(Pageable.class);
         TaskView.TaskViewInterface task = mock(TaskView.TaskViewInterface.class);
         when(task.getStatus()).thenReturn("DONE");
 
-        when(taskRepository.getTasksByStatus(Task.Status.DONE)).thenReturn(
-                List.of(task)
+        when(taskRepository.getTasksByStatus(Task.Status.DONE, pageable)).thenReturn(
+                new PageImpl<>(
+                        List.of(task)
+                )
         );
 
-        List<TaskView> result = taskService.getTasks(Task.Status.DONE);
+        Page<TaskView> result = taskService.getTasks(Task.Status.DONE, pageable);
 
-        verify(taskRepository, times(1)).getTasksByStatus(statusCaptor.capture());
+        verify(taskRepository, times(1)).getTasksByStatus(statusCaptor.capture(), ArgumentMatchers.eq(pageable));
         assertThat(statusCaptor.getValue()).isEqualTo(Task.Status.DONE);
         assertThat(result).isNotNull();
         assertThat(result).hasSize(1);

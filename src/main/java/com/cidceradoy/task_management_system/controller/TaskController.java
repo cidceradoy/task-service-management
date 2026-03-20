@@ -6,6 +6,9 @@ import com.cidceradoy.task_management_system.dto.TaskView;
 import com.cidceradoy.task_management_system.model.Task;
 import com.cidceradoy.task_management_system.service.TaskService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -26,8 +29,9 @@ public class TaskController {
     }
 
     @GetMapping
-    public ResponseEntity<List<TaskView>> getTasks(@RequestParam(value = "status", required = false) Task.Status status) {
-        List<TaskView> tasks = taskService.getTasks(status);
+    public ResponseEntity<Page<TaskView>> getTasks(@RequestParam(value = "status", required = false) Task.Status status,
+                                                   @PageableDefault(page = 0, size = 5) Pageable pageable) {
+        Page<TaskView> tasks = taskService.getTasks(status, pageable);
         return ResponseEntity.ok(tasks);
     }
 
